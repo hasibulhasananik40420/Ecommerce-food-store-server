@@ -35,6 +35,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         await client.connect();
+        const productCollection = client.db("moontech").collection("product");
 
 
     }
@@ -47,6 +48,10 @@ async function run() {
 run().catch(console.dir);
 
 
+app.get("/", (req, res) => {
+    res.send("food-store-server");
+});
+
 app.listen(port, () => {
-    console.log("food-store server is  running on ", port);
-})
+    console.log(`Example app listening on port ${port}`);
+});
