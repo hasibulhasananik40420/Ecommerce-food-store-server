@@ -21,7 +21,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 //verifyJWT jwt token
 
-function verifyJWT(rrq, res, next) {
+function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization
 
     if (!authHeader) {
@@ -52,6 +52,7 @@ async function run() {
         const productCollection = client.db("productCollection").collection("products");
         const cartCollection = client.db("cartCollection").collection("cart");
         const userCollection = client.db("userCollection").collection("user");
+        const reviewCollection = client.db("reviewCollection").collection("review");
 
 
         //  allproducts
@@ -123,9 +124,10 @@ async function run() {
 
 
         // save all user in database
-        app.put('users/:email', async (req, res) => {
+        app.put('/users/:email', async (req, res) => {
             const email = req.params.email
             const user = req.body
+            // console.log(user)
             const filter = { email: email }
             const options = { upsert: true };
             const updateDoc = {
@@ -133,53 +135,96 @@ async function run() {
             }
             const result = await userCollection.updateOne(filter, updateDoc, options)
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
-            console.log(token)
+            // console.log(token)
             res.send({ result, token })
 
         })
 
-        // app.get('/jwt', async (req, res) => {
-        //     const email = req.query.email
-        //     const query = { email: email }
-        //     console.log(query)
-        //     const user = await userCollection.findOne(query)
-        //     if (user) {
-        //         const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
-        //         return res.send({ accessToken: token })
-        //     }
-        //     console.log(user)
-        //     res.status(403).send({ accessToken: '' })
-        // })
 
 
-        // app.post('/users', async (req, res) => {
-        //     const user = req.body
-        //     const result = await userCollection.insertOne(user)
-        //     res.send(result)
-        // })
+        //get all user
+        app.get('/allusers', async (req, res) => {
+            const query = {}
+            const result = await userCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        //delete user by id
+
+        app.delete('/delete/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await userCollection.deleteOne(query)
+            res.send(result)
+        })
 
 
-        // male admin
+        // make admin
 
-        app.get('/admin/:email', async (req, res) => {
+        app.get('/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email
             const user = await userCollection.findOne({ email: email })
             const isAdmin = user.role === 'admin'
             res.send({ admin: isAdmin })
         })
 
-        // role set
 
-        app.put('/user/admin/:email', async (req, res) => {
-            const email = req.params.email
-            const filter = { email: email }
-            const updatedDoc = {
+        //admin role set 
+        app.put('/makeadmin/:email', verifyJWT, async (req, res) => {
+            const email = req.params
+            const filter = { email: email.email }
+            const updateDoc = {
                 $set: { role: 'admin' }
             }
-            const result = await userCollection.updateOne(filter, updatedDoc)
+            const result = await userCollection.updateOne(filter, updateDoc);
             res.send(result)
         })
 
+
+
+        //get myprofile data by email
+
+        app.get('/myprofile/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { email: email }
+            console.log(query)
+            const cursor = userCollection.find(query)
+            const result = await cursor.toArray()
+            res.send(result)
+
+        })
+
+        //save profile data
+        app.put('/profiledata/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email
+            const filter = { email: email }
+            const profileData = req.body
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: profileData
+            }
+            const result = await userCollection.updateOne(filter, updateDoc, options)
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+            res.send({ result, token })
+        })
+
+
+        //save all review
+
+        app.post('/review', async (req, res) => {
+            const reviews = req.body
+            const result = await reviewCollection.insertOne(reviews)
+            res.send(result)
+
+        })
+
+        // get all review
+
+        app.get('/allreview', async (req, res) => {
+            const allreviews = await reviewCollection.find().toArray()
+            res.send(allreviews)
+
+        })
 
 
     }
