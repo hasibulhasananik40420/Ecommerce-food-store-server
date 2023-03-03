@@ -48,11 +48,13 @@ function verifyJWT(req, res, next) {
 
 async function run() {
     try {
-        await client.connect();
+        client.connect();
         const productCollection = client.db("productCollection").collection("products");
         const cartCollection = client.db("cartCollection").collection("cart");
         const userCollection = client.db("userCollection").collection("user");
         const reviewCollection = client.db("reviewCollection").collection("review");
+        const offerCollection = client.db("offerCollection").collection("offer");
+        const orderCollection = client.db("orderCollection").collection("order");
 
 
         //  allproducts
@@ -61,6 +63,15 @@ async function run() {
             const allProducts = await productCollection.find().toArray()
             res.send(allProducts)
         })
+
+        //save products 
+        app.post('/addproducts', async (req, res) => {
+            const product = req.body
+            // console.log(product)
+            const result = await productCollection.insertOne(product)
+            res.send(result)
+        })
+
 
         //  get single product by id
         app.get('/product-details/:id', async (req, res) => {
@@ -74,23 +85,21 @@ async function run() {
 
         // add to cart
 
-        app.post('/addtocart/:id', async (req, res) => {
-            const id = req.params.id;
-            const email = req.query.email
-            const Cart = req.body
-            const filter = {
-                $and: [
-                    { _id: new ObjectId(id) },
-                    { 'userEmail': email }
-                ]
-            };
+        // app.put('/addtocart/:id', async (req, res) => {
+        //     const id = req.params.id
+        //     const filter = { _id: new ObjectId(id) }
+        //     const Cart = req.body
+        //     const options = { upsert: true };
+        //     const updateDoc = {
+        //         $set: Cart
+        //     }
+        //     const result = await cartCollection.updateOne(filter, updateDoc, options);
+        //     res.send(result)
+        // })
 
-            console.log(filter)
-            const options = { upsert: true };
-            const updatedDoc = {
-                $set: Cart
-            }
-            const result = await cartCollection.updateOne(filter, updatedDoc, options);
+        app.post('/addtocart', async (req, res) => {
+            const Cart = req.body
+            const result = await cartCollection.insertOne(Cart)
             res.send(result)
         })
 
@@ -106,7 +115,7 @@ async function run() {
 
         app.get('/myallcart/:email', async (req, res) => {
             const email = req.params
-            const query = { email: email.email }
+            const query = { userEmail: email.email }
             // console.log(query)
             const cursor = await cartCollection.find(query).toArray()
             // console.log(cursor)
@@ -184,10 +193,10 @@ async function run() {
 
         //get myprofile data by email
 
-        app.get('/myprofile/:email', async (req, res) => {
+        app.get('/myprofiledata/:email', async (req, res) => {
             const email = req.params.email
             const query = { email: email }
-            console.log(query)
+            // console.log(query)
             const cursor = userCollection.find(query)
             const result = await cursor.toArray()
             res.send(result)
@@ -225,6 +234,34 @@ async function run() {
             res.send(allreviews)
 
         })
+
+        //post a offer 
+        app.post('/offer', async (req, res) => {
+            const offers = req.body
+            const result = await offerCollection.insertOne(offers)
+            res.send(result)
+
+        })
+
+        // display all offers
+        app.get('/alloffers', async (req, res) => {
+            const allOffers = await (await offerCollection.find().toArray()).reverse()
+            res.send(allOffers)
+        })
+
+
+
+        //order place 
+        app.post('/orderplace', async (req, res) => {
+            const order = req.body
+            // console.log(order)
+            const result = await orderCollection.insertOne(order)
+            res.send(result)
+        })
+
+
+
+
 
 
     }
