@@ -83,6 +83,23 @@ async function run() {
         })
 
 
+        ///payment
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const service = req.body
+            const price = service.price
+            const amount = price * 100
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+
+            })
+            res.send({ clientSecret: paymentIntent.client_secret })
+        })
+
+
+
+
         // add to cart
 
         // app.put('/addtocart/:id', async (req, res) => {
@@ -132,6 +149,11 @@ async function run() {
         })
 
 
+
+
+
+
+
         // save all user in database
         app.put('/users/:email', async (req, res) => {
             const email = req.params.email
@@ -173,7 +195,7 @@ async function run() {
         app.get('/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email
             const user = await userCollection.findOne({ email: email })
-            const isAdmin = user.role === 'admin'
+            const isAdmin = user?.role === 'admin'
             res.send({ admin: isAdmin })
         })
 
